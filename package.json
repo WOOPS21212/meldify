@@ -1,15 +1,17 @@
 {
   "name": "meldify",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "concurrently \"sass src/styles/style.scss src/styles/style.css --watch\" \"electron .\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "electron": "^35.2.1"
+    "concurrently": "^9.1.2",
+    "electron": "^35.2.1",
+    "electron-reload": "^2.0.0-alpha.1"
   }
 }
