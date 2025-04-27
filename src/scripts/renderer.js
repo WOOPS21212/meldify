@@ -9,7 +9,7 @@ const userSettings = {
   applyLUT: true,
   droneResolution: true,
   syncAudio: true,
-  exportFormat: "mp4" // Default export format
+  exportFormat: "mp4"
 };
 
 // ===== VANTA Background =====
@@ -165,7 +165,6 @@ document.getElementById('startExport').addEventListener('click', async () => {
     return;
   }
 
-  // Show Progress UI
   const progressContainer = document.getElementById('exportProgressContainer');
   const progressText = document.getElementById('exportProgressText');
   const progressBar = document.getElementById('exportProgressBar');
@@ -189,9 +188,11 @@ document.getElementById('startExport').addEventListener('click', async () => {
     await new Promise((resolve) => {
       exec(command, (error, stdout, stderr) => {
         if (error) {
-          console.error(`❌ Error transcoding ${inputPath}:`, error);
+          console.error(`❌ FFmpeg error for ${inputPath}:`);
+          console.error(stderr); // Print FFmpeg stderr (very important!)
         } else {
           console.log(`✅ Successfully transcoded ${inputPath}`);
+          console.log(stdout); // Optional: FFmpeg standard output
         }
         resolve();
       });
@@ -207,7 +208,7 @@ document.getElementById('startExport').addEventListener('click', async () => {
   alert("✅ All exports finished!");
 });
 
-// ===== Initialize Dropzone (Drag and Drop) =====
+// ===== Initialize Dropzone =====
 setupDropzone();
 
 // ===== Initialize First Page =====
