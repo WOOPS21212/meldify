@@ -58,9 +58,13 @@ function setupDropzone() {
 function traverseFileTree(item, path = "") {
   if (item.isFile) {
     item.file((file) => {
-      console.log('File:', path + file.name);
+      if (!file || !file.path) {
+        console.warn("⚠️ Skipping invalid file:", file);
+        return;
+      }
+      console.log('✅ File:', file.path);
       window.droppedFiles.push({
-        path: path + file.name,
+        path: file.path, // Absolute correct path!
         file: file
       });
     });
@@ -76,103 +80,45 @@ function traverseFileTree(item, path = "") {
 
 // Filter only footage/audio
 function filterValidFiles(files) {
-    const validExtensions = ['.r3d', '.mov', '.mxf', '.mp4', '.wav'];
-    const validFiles = files.filter(fileEntry => {
-      const lowerPath = fileEntry.path.toLowerCase();
-      return validExtensions.some(ext => lowerPath.endsWith(ext));
-    });
-  
-    const fileMap = {};
-  
-    validFiles.forEach(fileEntry => {
-      // Ignore extension
-      const cleanName = fileEntry.file.name.split('.').slice(0, -1).join('.').toLowerCase();
-  
-      if (!fileMap[cleanName]) {
-        fileMap[cleanName] = fileEntry;
-      } else {
-        // Keep the larger file
-        if (fileEntry.file.size > fileMap[cleanName].file.size) {
-          fileMap[cleanName] = fileEntry;
-        }
-      }
-    });
-  
-    return Object.values(fileMap);
-  }
-  
+  const validExtensions = ['.r3d', '.mov', '.mxf', '.mp4', '.wav'];
+  return files.filter(fileEntry => {
+    if (!fileEntry || !fileEntry.path) return false;
+    const lowerPath = fileEntry.path.toLowerCase();
+    return validExtensions.some(ext => lowerPath.endsWith(ext));
+  });
+}
 
-// Group files by Camera smartly
+// Group files by Camera name, smarter detection
 function groupFilesByCamera(files) {
-    const cameraGroups = {};
-  
-    files.forEach(fileEntry => {
-      const fullPath = fileEntry.path;
-      const filename = fileEntry.file.name;
-  
-      const parts = fullPath.split(/[\\/]/);
-  
-      let folderName = "Unknown Folder";
-  
-      if (parts.length >= 3) {
-        const parentFolder = parts[parts.length - 2];
-        const grandParentFolder = parts[parts.length - 3];
-  
-        if (parentFolder.toLowerCase().endsWith(".rdc")) {
-          folderName = grandParentFolder;
-        } else {
-          folderName = parentFolder;
-        }
+  const cameraGroups = {};
+
+  files.forEach(fileEntry => {
+    const filename = fileEntry.file.name.toLowerCase();
+
+    // Detect basic Camera Type
+    let cameraType = "Unknown";
+
+    if (filename.startsWith("dji")) {
+      cameraType = "DJI Drone";
+    } else if (filename.startsWith("gopr")) {
+      cameraType = "GoPro";
+    } else if (filename.endsWith(".r3d") || filename.includes("red")) {
+      cameraType = "RED Camera";
+    } else {
+      const match = filename.match(/^([a-z]\d{3})/i);
+      if (match) {
+        cameraType = match[1].toUpperCase(); // e.g., "A001"
       }
-  
-      // Unified Camera Type Detection
-      let cameraType = "Unknown";
-  
-      const nameCheck = filename.toLowerCase();
-  
-      if (nameCheck.includes("dji")) {
-        cameraType = "DJI";
-      } else if (nameCheck.includes("gopr")) {
-        cameraType = "GoPro";
-      } else if (nameCheck.includes("red") || nameCheck.includes(".r3d") || nameCheck.includes(".rdc")) {
-        cameraType = "RED";
-      } else {
-        const match = filename.match(/^([a-z]\d{3})/i);
-        if (match) {
-          cameraType = match[1].toUpperCase(); // e.g., A001
-        }
-      }
-  
-      // === SMART LOGIC - Keyword Based Grouping ===
-      let smartGroup = "";
-  
-      const folderNameLower = folderName.toLowerCase();
-  
-      if (folderNameLower.includes("lens")) {
-        smartGroup = "Lens Tests";
-      } else if (folderNameLower.includes("test")) {
-        smartGroup = "Camera Tests";
-      } else if (folderNameLower.includes("b cam") || folderNameLower.includes("b-cam") || folderNameLower.includes("2")) {
-        smartGroup = "B-Cam";
-      } else if (folderNameLower.includes("c cam") || folderNameLower.includes("c-cam") || folderNameLower.includes("3")) {
-        smartGroup = "C-Cam";
-      } else if (folderNameLower.includes("raw")) {
-        smartGroup = "RAW Main";
-      } else {
-        smartGroup = folderName.replace(/[_\-]/g, ' ').trim();
-      }
-  
-      const groupKey = `${cameraType} – ${smartGroup}`;
-  
-      if (!cameraGroups[groupKey]) {
-        cameraGroups[groupKey] = [];
-      }
-      cameraGroups[groupKey].push(fileEntry);
-    });
-  
-    return cameraGroups;
-  }
-  
+    }
+
+    if (!cameraGroups[cameraType]) {
+      cameraGroups[cameraType] = [];
+    }
+    cameraGroups[cameraType].push(fileEntry);
+  });
+
+  return cameraGroups;
+}
 
 // Detect Duplicate Filenames
 function detectDuplicateFilenames(files) {
@@ -180,6 +126,7 @@ function detectDuplicateFilenames(files) {
   const duplicates = [];
 
   files.forEach(fileEntry => {
+    if (!fileEntry || !fileEntry.file) return;
     const name = fileEntry.file.name;
     if (nameMap[name]) {
       duplicates.push(name);
