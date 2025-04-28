@@ -7,7 +7,7 @@ window.validFiles = [];
 window.cameraGroups = {};
 
 // ===== Dropzone Setup =====
-function setupDropzone() {
+window.setupDropzone = function() {
   const dropzone = document.getElementById('dropzone');
 
   dropzone.addEventListener('click', () => {
@@ -28,38 +28,74 @@ function setupDropzone() {
     e.preventDefault();
     dropzone.classList.remove('dragover');
 
+    // Reset global arrays
+    window.droppedFiles = [];
+    window.validFiles = [];
+    window.cameraGroups = {};
+
     const items = e.dataTransfer.items;
+    console.log(`🔄 Processing ${items.length} dropped items...`);
+
+    // Count to track when all entries have been processed
+    let pendingEntries = 0;
+    let processedEntries = 0;
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i].webkitGetAsEntry();
       if (item) {
-        traverseFileTree(item);
+        pendingEntries++;
+        traverseFileTree(item, '', () => {
+          processedEntries++;
+          
+          // When all entries processed, process the files
+          if (processedEntries === pendingEntries) {
+            console.log('✅ All files scanned. Found:', window.droppedFiles.length);
+            processFiles();
+          }
+        });
       }
     }
-
-    setTimeout(() => {
-      window.validFiles = filterValidFiles(window.droppedFiles);
-      window.cameraGroups = groupFilesByCamera(window.validFiles);
-
-      console.log('✅ Camera Groups:', window.cameraGroups);
-
-      detectDuplicateFilenames(window.validFiles);
-
-      if (typeof buildGallery === "function") {
-        buildGallery();
-      }
-    }, 500);
   });
+
+  // Process the collected files
+  function processFiles() {
+    console.log('🔄 Processing files...');
+    
+    // Filter only media files
+    window.validFiles = filterValidFiles(window.droppedFiles);
+    console.log('✅ Valid media files found:', window.validFiles.length);
+    
+    // Early exit if no valid files
+    if (window.validFiles.length === 0) {
+      alert('No valid media files found. Please drag and drop video files (R3D, MOV, MXF, MP4, etc.)');
+      return;
+    }
+
+    // Group files by camera
+    window.cameraGroups = groupFilesByCamera(window.validFiles);
+    console.log('✅ Camera Groups:', window.cameraGroups);
+    
+    // Detect duplicates
+    detectDuplicateFilenames(window.validFiles);
+    
+    // Update gallery if function exists
+    if (typeof window.buildGallery === "function") {
+      window.buildGallery();
+    } else {
+      console.error('❌ buildGallery function not found!');
+    }
+  }
 }
 
 // ===== Helper Functions =====
 
-// Recursively scan folders and files
-function traverseFileTree(item, path = "") {
+// Recursively scan folders and files with callback
+function traverseFileTree(item, path = "", callback) {
   if (item.isFile) {
     item.file((file) => {
       if (!file || !file.path) {
         console.warn("⚠️ Skipping invalid file:", file);
+        if (callback) callback();
         return;
       }
       console.log('✅ File:', file.path);
@@ -67,14 +103,50 @@ function traverseFileTree(item, path = "") {
         path: file.path, // Absolute correct path!
         file: file
       });
+      if (callback) callback();
+    }, (error) => {
+      console.error('❌ Error accessing file:', error);
+      if (callback) callback();
     });
   } else if (item.isDirectory) {
     const dirReader = item.createReader();
-    dirReader.readEntries((entries) => {
-      entries.forEach((entry) => {
-        traverseFileTree(entry, path + item.name + "/");
+    let pendingEntries = 0;
+    let processedEntries = 0;
+    
+    const readEntries = () => {
+      dirReader.readEntries((entries) => {
+        if (entries.length > 0) {
+          pendingEntries += entries.length;
+          
+          entries.forEach((entry) => {
+            traverseFileTree(entry, path + item.name + "/", () => {
+              processedEntries++;
+              if (processedEntries >= pendingEntries && callback) {
+                callback();
+              }
+            });
+          });
+          
+          // Continue reading if there might be more entries
+          readEntries();
+        } else {
+          // If no entries found and we haven't processed any yet, 
+          // this is an empty directory
+          if (pendingEntries === 0 && callback) {
+            callback();
+          }
+        }
+      }, (error) => {
+        console.error('❌ Error reading directory:', error);
+        if (callback) callback();
       });
-    });
+    };
+    
+    readEntries();
+  } else {
+    // Neither file nor directory
+    console.warn('⚠️ Unknown item type:', item);
+    if (callback) callback();
   }
 }
 

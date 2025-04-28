@@ -79,38 +79,56 @@ function updateGallerySettings() {
 // ===== Build Gallery =====
 window.buildGallery = function() {
   const galleryGrid = document.getElementById('gallery-grid');
+  if (!galleryGrid) {
+    console.error('❌ Gallery grid element not found!');
+    return;
+  }
+  
   galleryGrid.innerHTML = "";
 
-  if (Object.keys(window.cameraGroups).length === 0) {
-    galleryGrid.innerHTML = "<p>No cameras detected yet.</p>";
+  console.log('Building gallery with camera groups:', window.cameraGroups);
+
+  if (!window.cameraGroups || Object.keys(window.cameraGroups).length === 0) {
+    console.warn('No camera groups available for gallery');
+    galleryGrid.innerHTML = "<p>No cameras detected yet. Try dropping some video files.</p>";
     return;
   }
 
-  Object.keys(window.cameraGroups).forEach(cameraName => {
-    const group = window.cameraGroups[cameraName];
-
-    const firstClip = group.length > 0 ? group[0] : null;
-    let thumbnailURL = "";
-
-    if (firstClip) {
-      thumbnailURL = "url('assets/placeholder-thumb.jpg')";
+  Object.keys(window.cameraGroups).forEach(cameraKey => {
+    const group = window.cameraGroups[cameraKey];
+    
+    if (!group || group.length === 0) {
+      console.warn(`Empty camera group for ${cameraKey}`);
+      return;
     }
 
+    const firstClip = group[0];
+    
+    // Create card element
     const card = document.createElement('div');
     card.className = 'gallery-card';
-    card.style.backgroundImage = thumbnailURL;
-    card.style.backgroundSize = 'cover';
-    card.style.backgroundPosition = 'center';
-    card.style.backgroundRepeat = 'no-repeat';
-    card.style.borderRadius = '20px';
-
+    
+    // Set background color
+    const cardColor = '#333333';
+    card.style.background = `linear-gradient(45deg, ${cardColor}, #555555)`;
+    
+    // Populate card content
     card.innerHTML = `
       <div class="overlay">
-        <h2>${cameraName}</h2>
-        <p>${group.length} clips</p>
+        <div style="font-size: 36px; margin-bottom: 10px;">📹</div>
+        <h2>${cameraKey}</h2>
+        <p>${group.length} clip${group.length !== 1 ? 's' : ''}</p>
+        <p class="small-text">${firstClip.file.name}</p>
       </div>
     `;
+    
+    // Add click handler to show camera details
+    card.addEventListener('click', () => {
+      alert(`Selected camera: ${cameraKey} with ${group.length} clips`);
+    });
+    
     galleryGrid.appendChild(card);
+    console.log(`Added gallery card for ${cameraKey} with ${group.length} clips`);
   });
 }
 
@@ -161,7 +179,13 @@ document.getElementById('startExport').addEventListener('click', async () => {
 
   console.log('Exporting to:', folderPath);
 
-  const allFiles = Object.values(window.cameraGroups).flat();
+  // Flatten the array of arrays in cameraGroups
+  const allFiles = [];
+  Object.values(window.cameraGroups).forEach(group => {
+    if (Array.isArray(group)) {
+      allFiles.push(...group);
+    }
+  });
   let current = 0;
   const total = allFiles.length;
 
@@ -216,7 +240,7 @@ document.getElementById('startExport').addEventListener('click', async () => {
 });
 
 // ===== Initialize Dropzone =====
-setupDropzone();
+window.setupDropzone();
 
 // ===== Initialize First Page =====
 showPage(currentPage);
