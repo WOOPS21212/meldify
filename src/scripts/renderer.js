@@ -12,11 +12,6 @@ const userSettings = {
   exportFormat: "mp4"
 };
 
-// ===== Path Normalization (for Windows safety) =====
-function normalizePath(p) {
-  return p.replace(/\\/g, '/');
-}
-
 // ===== VANTA Background =====
 VANTA.HALO({
   el: "#backgroundHalo",
@@ -179,27 +174,25 @@ document.getElementById('startExport').addEventListener('click', async () => {
   progressBar.style.width = '0%';
 
   for (const fileEntry of allFiles) {
-    const inputPath = normalizePath(fileEntry.path);
+    const inputPath = fileEntry.path;
     const fileNameNoExt = fileEntry.file.name.split('.').slice(0, -1).join('.');
     const format = userSettings.exportFormat || "mp4";
     const outputExt = format === "mp4" ? ".mp4" : ".mov";
-    const outputPath = normalizePath(`${folderPath}/${fileNameNoExt}${outputExt}`);
+    const outputPath = `${folderPath}/${fileNameNoExt}${outputExt}`;
 
     const command = buildFFmpegCommand(inputPath, outputPath);
 
     console.log(`🎬 Exporting ${current + 1}/${total}: ${fileNameNoExt}`);
-    console.log(`Input Path: ${inputPath}`);
-    console.log(`Output Path: ${outputPath}`);
-    console.log(`Command: ${command}`);
+    console.log('Running Command:', command);
 
     await new Promise((resolve) => {
       exec(command, (error, stdout, stderr) => {
         if (error) {
           console.error(`❌ FFmpeg error for ${inputPath}:`);
-          console.error(stderr);
+          console.error(stderr); // Print FFmpeg stderr (very important!)
         } else {
           console.log(`✅ Successfully transcoded ${inputPath}`);
-          console.log(stdout);
+          console.log(stdout); // Optional: FFmpeg standard output
         }
         resolve();
       });
