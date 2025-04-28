@@ -75,6 +75,22 @@ button {
   }
 }
 
+// Progress bar inside dropzone
+.progress-bar {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  margin: 15px 0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 20px;
+  background-color: white;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
 // SETTINGS FORM
 
 .settings-form {
@@ -144,11 +160,15 @@ input[type="checkbox"] {
   font-size: 1.2rem;
   line-height: 1.8;
 }
+
 .dropzone.dragover {
   background: rgba(255, 255, 255, 0.2);
   border-color: white;
   transform: scale(1.02);
 }
+
+// GALLERY GRID
+
 #gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -156,10 +176,13 @@ input[type="checkbox"] {
   margin-top: 30px;
   margin-bottom: 30px;
   padding: 10px;
+  width: 90%;
+  max-width: 1200px;
 }
 
-
 .gallery-card {
+  position: relative;
+  height: 180px;
   padding: 20px;
   border: 5px solid white;
   border-radius: 20px;
@@ -167,9 +190,16 @@ input[type="checkbox"] {
   color: white;
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(5px);
-  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
 }
-
 
 .gallery-card h2 {
   margin-top: 10px;
@@ -180,11 +210,188 @@ input[type="checkbox"] {
 .gallery-card p {
   margin-top: 5px;
   font-size: 16px;
+  margin-bottom: 10px;
 }
 
-.gallery-card:hover {
-  transform: scale(1.05);
+.small-text {
+  font-size: 12px !important;
+  opacity: 0.8;
+  margin-top: 0 !important;
+}
+
+// Confidence indicators
+.confidence-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.high-confidence .confidence-indicator {
+  background: rgba(76, 175, 80, 0.8);
+  color: white;
+}
+
+.medium-confidence .confidence-indicator {
+  background: rgba(255, 193, 7, 0.8);
+  color: black;
+}
+
+.low-confidence .confidence-indicator, 
+.none-confidence .confidence-indicator {
+  background: rgba(255, 87, 34, 0.8);
+  color: white;
+}
+
+.lut-info {
+  margin-top: 10px;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.lut-high-confidence {
+  color: yellow;
+  font-weight: bold;
+}
+
+// Camera Modal
+.camera-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: linear-gradient(45deg, #1a1a2e, #16213e);
+  border-radius: 20px;
+  width: 80%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  color: white;
+  border: 2px solid white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.close-modal {
+  font-size: 30px;
+  cursor: pointer;
   transition: transform 0.2s;
-  background-color: rgba(255, 255, 255, 0.1);
+  
+  &:hover {
+    transform: scale(1.2);
+  }
 }
 
+.modal-body {
+  padding: 10px 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.lut-selection {
+  margin: 30px 0;
+  
+  label {
+    display: block;
+    margin-bottom: 10px;
+  }
+  
+  select {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 1px solid white;
+    border-radius: 10px;
+    font-size: 16px;
+    
+    option {
+      background: #16213e;
+    }
+  }
+}
+
+.clip-list {
+  margin-top: 20px;
+  
+  h3 {
+    margin-bottom: 15px;
+  }
+}
+
+.clips-container {
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.clip-item {
+  padding: 8px;
+  margin-bottom: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.modal-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: right;
+}
+
+.apply-button {
+  background: rgba(255, 255, 255, 0.2);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+}
+
+// Export page
+select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: 1px solid white;
+  border-radius: 10px;
+  font-size: 16px;
+}
