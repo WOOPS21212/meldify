@@ -93,14 +93,18 @@ window.setupDropzone = function() {
 function traverseFileTree(item, path = "", callback) {
   if (item.isFile) {
     item.file((file) => {
-      if (!file || !file.path) {
+      if (!file) {
         console.warn("⚠️ Skipping invalid file:", file);
         if (callback) callback();
         return;
       }
-      console.log('✅ File:', file.path);
+      
+      // Use file.name instead of file.path which might not be available
+      const filePath = path + file.name;
+      console.log('✅ File:', filePath);
+      
       window.droppedFiles.push({
-        path: file.path, // Absolute correct path!
+        path: filePath,
         file: file
       });
       if (callback) callback();
@@ -154,9 +158,15 @@ function traverseFileTree(item, path = "", callback) {
 function filterValidFiles(files) {
   const validExtensions = ['.r3d', '.mov', '.mxf', '.mp4', '.wav'];
   return files.filter(fileEntry => {
-    if (!fileEntry || !fileEntry.path) return false;
-    const lowerPath = fileEntry.path.toLowerCase();
-    return validExtensions.some(ext => lowerPath.endsWith(ext));
+    if (!fileEntry || !fileEntry.file) return false;
+    
+    // Check both path and filename to be safe
+    const lowerPath = fileEntry.path ? fileEntry.path.toLowerCase() : '';
+    const lowerName = fileEntry.file.name.toLowerCase();
+    
+    return validExtensions.some(ext => 
+      lowerPath.endsWith(ext) || lowerName.endsWith(ext)
+    );
   });
 }
 
