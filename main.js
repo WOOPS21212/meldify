@@ -47,6 +47,18 @@ app.on('window-all-closed', () => {
 });
 
 app.on('web-contents-created', (event, contents) => {
-  contents.on('will-navigate', e => e.preventDefault());
-  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  // Prevent navigation when dragging files in
+  contents.on('will-navigate', (e) => {
+    e.preventDefault();
+    console.log('Navigation prevented');
+  });
+  
+  // Prevent opening new windows
+  contents.setWindowOpenHandler(() => {
+    console.log('Window open prevented');
+    return { action: 'deny' };
+  });
+
+  // Enable DevTools for debugging
+  contents.openDevTools();
 });
