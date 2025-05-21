@@ -53,3 +53,8 @@ Description: Consolidated PRD.md into Electron App PRD.md to avoid duplication.
 Impacted Sections: PRD.md, Electron App PRD.md
 Next Steps: Delete or archive PRD.md, continue edits only in Electron App PRD.md.
 
+### [2025-05-21] – Recursive Folder Scanning
+**Change Type:** Added
+**Description:** Implemented IPC-based folder scanning to handle large drag-and-drop imports and gather absolute paths for .R3D, .MOV, and .MXF files.
+**Impacted Sections:** main.js, preload.js, src/scripts/fileManager.js, PRD folder ingestion section.
+**Next Steps:** Integrate scanned file groups into gallery display.

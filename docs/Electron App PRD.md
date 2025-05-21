@@ -30,6 +30,7 @@ It will be **Windows-only**, due to dependencies on utilities such as **FFmpeg**
 
 * Droppable area or explorer-based folder selection.
 * Background indexing of folder contents.
+* Recursively scan dropped folders for **.R3D**, **.MOV**, and **.MXF** files to collect absolute paths.
 
 #### 📂 Organization & Metadata
 

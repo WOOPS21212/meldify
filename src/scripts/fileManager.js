@@ -6,8 +6,7 @@
  * with contextIsolation: true and nodeIntegration: false
  */
 
-// Using the exposed electronAPI instead of direct Node.js modules
-// These functions need to be moved to main process or preload
+// Uses the electronAPI bridge instead of Node.js modules
 
 /**
  * Exposes folder scanning and file grouping functions to the window object
@@ -17,21 +16,18 @@
   // This is a client-side wrapper that will call electronAPI methods
   
   /**
-   * Recursively scans a folder for video files
-   * @param {string} folderPath - Path to the folder to scan
-   * @returns {Promise<Array<{path: string, name: string, size: number}>>} Array of video files
+   * Recursively scans a folder for supported video files.
+   * @param {string} folderPath - Absolute path to the folder to scan.
+   * @returns {Promise<string[]>} Array of absolute file paths.
    */
   window.scanFolder = async function(folderPath) {
     try {
       console.log("Wrapper: Scanning folder", folderPath);
-      // This should be implemented in preload/main to actually perform the scan
-      
-      // For now, return an empty array with a message since the functionality
-      // needs to be moved to main process
-      console.warn("scanFolder requires main process implementation");
-      alert("Folder scanning functionality requires an update to use electronAPI instead of Node.js APIs directly. This will be implemented in main/preload.");
-      
-      return [];
+      if (!window.electronAPI || typeof window.electronAPI.scanFolder !== 'function') {
+        throw new Error('scanFolder API not available');
+      }
+      const files = await window.electronAPI.scanFolder(folderPath);
+      return files;
     } catch (error) {
       console.error("Error in scanFolder wrapper:", error);
       throw error;
@@ -46,21 +42,20 @@
   window.groupByCamera = async function(files) {
     try {
       console.log("Wrapper: Grouping files by camera", files.length);
-      
-      // For now, create a simple mock structure that the UI can work with
-      // This should be implemented in main/preload
-      console.warn("groupByCamera requires main process implementation");
-      
-      // Mock a camera group for demo purposes
-      return [{
-        name: "Demo Camera",
-        files: files.map((f, i) => ({
-          file: { name: `demo-file-${i}.mp4` },
-          path: f.path || `/mock/path/demo-file-${i}.mp4`
-        })),
-        totalSize: 1024 * 1024, // 1MB mock size
-        fileCount: files.length
-      }];
+      const groups = {};
+      files.forEach((p) => {
+        const name = p.split(/[/\\]/).pop();
+        const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
+        const key = ext.replace('.', '').toUpperCase();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ file: { name }, path: p });
+      });
+      return Object.keys(groups).map(k => ({
+        name: k,
+        files: groups[k],
+        totalSize: groups[k].length,
+        fileCount: groups[k].length
+      }));
     } catch (error) {
       console.error("Error in groupByCamera wrapper:", error);
       throw error;
@@ -85,81 +80,3 @@
     }
   };
 })();
-
-// NOTE: The following code needs to be moved to main.js or preload.js:
-/*
-const fs = require('fs').promises;
-const path = require('path');
-const { toWindowsPath, ensureAbsolutePath, validatePath } = require('./utils/pathUtils');
-const { isSupportedVideoFormat, groupFilesByCamera } = require('./utils/fileTypeUtils');
-
-async function scanFolder(folderPath) {
-    // Ensure we have a valid, absolute path
-    const absolutePath = ensureAbsolutePath(folderPath);
-    const windowsSafePath = toWindowsPath(absolutePath);
-
-    // Validate the path exists
-    const isValid = await validatePath(windowsSafePath);
-    if (!isValid) {
-        throw new Error(`Invalid or inaccessible path: ${windowsSafePath}`);
-    }
-
-    const videoFiles = [];
-
-    async function scanDirectory(currentPath) {
-        const entries = await fs.readdir(currentPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-            const fullPath = path.join(currentPath, entry.name);
-
-            if (entry.isDirectory()) {
-                // Recursively scan subdirectories
-                await scanDirectory(fullPath);
-            } else if (entry.isFile() && isSupportedVideoFormat(entry.name)) {
-                // Get file stats for size
-                const stats = await fs.stat(fullPath);
-                
-                videoFiles.push({
-                    path: fullPath,
-                    name: entry.name,
-                    size: stats.size
-                });
-            }
-        }
-    }
-
-    // Start the recursive scan
-    await scanDirectory(windowsSafePath);
-    return videoFiles;
-}
-
-async function groupByCamera(files) {
-    // First group files by camera using fileTypeUtils
-    const groupedByCamera = groupFilesByCamera(files);
-
-    // Convert groups object to array format with metadata
-    const cameraGroups = Object.entries(groupedByCamera).map(([camera, files]) => {
-        const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-        
-        return {
-            name: camera,
-            files: files,
-            totalSize: totalSize,
-            fileCount: files.length
-        };
-    });
-
-    return cameraGroups;
-}
-
-async function handleFolderDrop(folderPath) {
-    try {
-        const files = await scanFolder(folderPath);
-        const groups = await groupByCamera(files);
-        return groups;
-    } catch (error) {
-        console.error('Error processing folder:', error);
-        throw error;
-    }
-}
-*/

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs/promises');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -29,6 +30,37 @@ ipcMain.handle('select-folder', async () => {
   }
 
   return result.filePaths[0];
+});
+
+// ===== Folder Scanning =====
+ipcMain.handle('scan-folder', async (event, folderPath) => {
+  const supported = new Set(['.r3d', '.mov', '.mxf']);
+
+  const files = [];
+  const stack = [folderPath];
+
+  try {
+    while (stack.length) {
+      const dir = stack.pop();
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          stack.push(full);
+        } else if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          if (supported.has(ext)) {
+            files.push(full);
+          }
+        }
+      }
+    }
+
+    return files;
+  } catch (err) {
+    console.error('scan-folder error:', err);
+    throw err;
+  }
 });
 
 // ===== App Lifecycle =====
