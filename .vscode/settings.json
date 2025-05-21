@@ -1,0 +1,4 @@
+{
+  "ollama.model": "deepseek-coder",
+  "ollama.baseUrl": "http://localhost:11434"
+}
