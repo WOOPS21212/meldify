@@ -4,11 +4,12 @@ const path = require('path');
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: true,  // allow require() in renderer
-      contextIsolation: false // allow ipcRenderer
-    }
+  height: 800,
+  webPreferences: {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true,
+    nodeIntegration: false
+  }
   });
 
   win.loadFile('src/index.html');
@@ -43,4 +44,9 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('web-contents-created', (event, contents) => {
+  contents.on('will-navigate', e => e.preventDefault());
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });

@@ -18,18 +18,7 @@ function normalizePath(p) {
 }
 
 // ===== VANTA Background =====
-VANTA.HALO({
-  el: "#backgroundHalo",
-  mouseControls: true,
-  touchControls: true,
-  gyroControls: false,
-  baseColor: 0x1a1a4d,
-  backgroundColor: 0x0d0d1a,
-  amplitudeFactor: 2.5,
-  xOffset: 0.25,
-  yOffset: 0.25,
-  size: 1.5
-});
+// Moved to DOMContentLoaded event listener at the bottom of the file
 
 // ===== Pages =====
 const pages = [
@@ -239,10 +228,110 @@ document.getElementById('startExport').addEventListener('click', async () => {
   alert("✅ All exports finished!");
 });
 
+// ===== Handle Drop Event =====
+function handleDrop(event) {
+  const files = [...event.dataTransfer.files];
+  if (files.length && files[0].type === "") {
+    // Use fileManager's scanFolder function, which is loaded via script tag in HTML
+    const scanPath = files[0].path;
+    console.log("Dropped folder:", scanPath);
+    handleFolderDrop(scanPath);
+  } else {
+    alert("Please drop a folder");
+  }
+}
+
+// Helper function to process scanned folders
+async function handleFolderDrop(folderPath) {
+  try {
+    console.log("Scanning folder:", folderPath);
+    // This uses the scanFolder and groupByCamera functions from fileManager.js
+    const files = await scanFolder(folderPath);
+    console.log("Found files:", files.length);
+    const groups = await groupByCamera(files);
+    window.cameraGroups = groups.reduce((acc, group) => {
+      acc[group.name] = group.files;
+      return acc;
+    }, {});
+    buildGallery();
+  } catch (error) {
+    console.error("Error processing folder:", error);
+    alert("Error processing folder: " + error.message);
+  }
+}
+
+// ===== Prevent Default Drag/Drop Behavior =====
+window.addEventListener("dragover", event => {
+  event.preventDefault();
+});
+
+window.addEventListener("drop", event => {
+  event.preventDefault();
+  handleDrop(event);
+});
+
+function selectFolder() {
+  window.electronAPI.selectFolder().then(folderPath => {
+    if (folderPath) {
+      console.log("Selected folder:", folderPath);
+      handleFolderDrop(folderPath);
+    }
+  });
+}
+
+
 // ===== Initialize Dropzone =====
+window.setupDropzone = function() {
+  const dropzone = document.getElementById('dropzone');
+  if (!dropzone) {
+    console.error('❌ Dropzone element not found!');
+    return;
+  }
+
+  // Setup visual feedback for drag-over events
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('active');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('active');
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('active');
+    handleDrop(e);
+  });
+
+  // Setup click behavior
+  dropzone.addEventListener('click', () => {
+    selectFolder();
+  });
+
+  console.log('✅ Dropzone initialized');
+};
+
+// Initialize the dropzone
 window.setupDropzone();
 
 // ===== Initialize First Page =====
 showPage(currentPage);
 
 }; // End window.onload
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (typeof VANTA !== 'undefined' && VANTA.HALO) {
+    VANTA.HALO({
+      el: "#backgroundHalo",
+      mouseControls: true,
+      touchControls: true,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      baseColor: 0x111111,
+      backgroundColor: 0x000000
+    });
+  } else {
+    console.error("VANTA or VANTA.HALO is not defined");
+  }
+});
