@@ -1,84 +1,80 @@
-**Product Requirements Document (PRD)**
+Electron App PRD (Updated May 21, 2025)
 
----
+📄 Summary
 
-### 📃 Summary
+This document outlines updated requirements and fixes for Meldify, a lightweight Electron app for professional camera footage ingestion, organization, and export. This update incorporates bug discoveries and workflow improvements confirmed during local testing.
 
-The goal is to build a **lightweight Electron app** that efficiently ingests, organizes, previews, and exports professional camera footage. It must be able to handle large folder sets without crashing or lagging, and include export support for industry formats like **MXF (Sony, Canon)** and **RED (Blackmagic Design)**.
+✨ Goals & Objectives
 
-The app will offer a **user-friendly UI** for navigation, feature customization (default export format, output folder overrides), and include helpful modules like a **support section**, **FAQ**, and **changelog**.
+Build a Windows-only Electron app for ingesting and organizing large sets of raw footage.
 
-It will be **Windows-only**, due to dependencies on utilities such as **FFmpeg** and system-level file manipulation. Minimal dependencies will ensure it performs well even on lower-spec systems.
+Support drag-and-drop and manual folder selection for ingesting footage.
 
----
+Enable export to industry-standard formats (MP4, MXF, ProRes/RED proxy).
 
-### 🌟 Goals & Objectives
+Maintain a clean UI with fast performance and minimal dependencies.
 
-* Build an **Electron-based desktop application** for Windows.
-* Allow ingestion of **large folder sets** containing professional footage without performance degradation.
-* Provide **export functionality** supporting multiple formats: MXF, RED, MP4.
-* Offer a **clean, intuitive interface** with easy-to-navigate sections.
-* Support user customization of output settings (e.g., format, destination folder).
-* Include **support features**: Help, FAQ, changelog.
-* Keep the app **lightweight** with minimal external dependencies.
+💪 Feature Updates
 
----
+✅ 1. Folder Ingestion: Manual Selection Bug
 
-### 📃 Detailed Features
+Problem:
+Clicking the "browse" button to select a folder throws:
 
-#### ✂ Folder Ingestion
+Error invoking remote method 'scan-folder': TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string ... Received undefined
 
-* Droppable area or explorer-based folder selection.
-* Background indexing of folder contents.
-* Recursively scan dropped folders for **.R3D**, **.MOV**, and **.MXF** files to collect absolute paths.
+Cause:
 
-#### 📂 Organization & Metadata
+The file input is not configured to return a directory path.
 
-* Group footage by camera, date, file type, etc.
-* Display associated metadata: resolution, codec, duration, etc.
+Fix:
 
-#### 🎥 Clip Preview & Export
+Use Electron's dialog.showOpenDialog in main.js with { properties: ['openDirectory'] }.
 
-* Built-in visual previewer for clips.
-* Allow users to:
+Validate the selected path before sending it to the IPC handler scan-folder.
 
-  * Set export format per group
-  * Export selected/all footage
-  * Choose between MP4, MXF, or RED-supported formats
+✔ 2. Drag-and-Drop Behavior (Confirmed Working)
 
-#### 🏠 UI & User Settings
+Status:
 
-* Easy-to-use layout with sidebar navigation
-* Settings section for:
+Dragging folders into the UI successfully triggers folder scan and grouping.
 
-  * Default export format
-  * Output folder override
-  * Theme (optional)
+No crash or input errors observed during this interaction.
 
-#### 🌐 Support & Help
+⚠ 3. UI Error Dialog Blocking (IPC Errors)
 
-* Embedded FAQ module
-* Link to support documentation
-* Version changelog
-* Feature roadmap (optional)
+Problem:
 
-#### 🔍 Export Output
+When a scan fails, a blocking dialog.showErrorBox halts the app.
 
-* Optional: Display exports on screen if user does not need to save them
-* Persistent output management with overwrite warning dialogs
+Fix:
 
----
+Replace modal with a non-blocking alert/toast or sidebar error.
 
-### 🔄 Implementation Plan (Outline)
+Allow users to continue interacting with the app even after an error.
 
-* **Phase 1**: UI design, Electron scaffold setup
-* **Phase 2**: Folder ingestion + indexing engine
-* **Phase 3**: FFmpeg-based preview and export modules
-* **Phase 4**: Settings & customization
-* **Phase 5**: FAQ + Support integration
-* **Phase 6**: Testing on large datasets (MXF, RED)
-* **Phase 7**: Performance tuning + Windows packaging
+⏳ 4. Export Screen Incomplete
 
----
+Problem:
 
-Let me know when you’re ready to start breaking this down into development tasks or sprint planning.
+"Start Export" button is non-functional. UI displays "Pending API update."
+
+Fix:
+
+Wire the button to a backend ipcRenderer.send('start-export', options).
+
+Ensure FFmpeg is executed with correct arguments.
+
+Add progress feedback to UI.
+
+📅 Timeline (Revised)
+
+Phase | Focus | Status
+------|-------|-------
+1 | Electron app scaffold | Complete
+2 | Folder ingestion (drag-drop) | Complete
+3 | Folder ingestion (manual) | In Progress
+4 | FFmpeg integration + Export UI | Pending
+5 | Error handling UX | Pending
+6 | Settings + Theming | Later
+7 | FAQ + Support Section | Later

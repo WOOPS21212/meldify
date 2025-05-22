@@ -58,3 +58,10 @@ Next Steps: Delete or archive PRD.md, continue edits only in Electron App PRD.md
 **Description:** Implemented IPC-based folder scanning to handle large drag-and-drop imports and gather absolute paths for .R3D, .MOV, and .MXF files.
 **Impacted Sections:** main.js, preload.js, src/scripts/fileManager.js, PRD folder ingestion section.
 **Next Steps:** Integrate scanned file groups into gallery display.
+
+## 2025-05-21 — Patch 02
+
+- 🛠 Fixed folder selection bug when using click-based picker (path undefined).
+- ✅ Verified drag-and-drop folder import already works as intended.
+- 🛠 Switched blocking error dialogs to non-blocking UI error flow.
+- ⚙ Implemented backend hookup plan for "Start Export" button.
