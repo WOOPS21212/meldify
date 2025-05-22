@@ -177,49 +177,49 @@ function buildFFmpegCommand(inputPath, outputPath) {
 }
 
 // ===== Start Export Process =====
-document.getElementById('startExport').addEventListener('click', async () => {
-  console.log("✅ Start Export button clicked!");
+// document.getElementById('startExport').addEventListener('click', async () => {
+//   console.log("✅ Start Export button clicked!");
 
-  // Use electronAPI from preload.js instead of direct ipcRenderer
-  const folderPath = await window.electronAPI.selectFolder();
+//   // Use electronAPI from preload.js instead of direct ipcRenderer
+//   const folderPath = await window.electronAPI.selectFolder();
 
-  if (!folderPath) {
-    alert("❗ No output folder selected!");
-    return;
-  }
+//   if (!folderPath) {
+//     alert("❗ No output folder selected!");
+//     return;
+//   }
 
-  console.log('Exporting to:', folderPath);
+//   console.log('Exporting to:', folderPath);
 
-  // Flatten the array of arrays in cameraGroups
-  const allFiles = [];
-  Object.values(window.cameraGroups).forEach(group => {
-    if (Array.isArray(group)) {
-      allFiles.push(...group);
-    }
-  });
-  let current = 0;
-  const total = allFiles.length;
+//   // Flatten the array of arrays in cameraGroups
+//   const allFiles = [];
+//   Object.values(window.cameraGroups).forEach(group => {
+//     if (Array.isArray(group)) {
+//       allFiles.push(...group);
+//     }
+//   });
+//   let current = 0;
+//   const total = allFiles.length;
 
-  if (total === 0) {
-    alert("❗ No files to export!");
-    return;
-  }
+//   if (total === 0) {
+//     alert("❗ No files to export!");
+//     return;
+//   }
 
-  const progressContainer = document.getElementById('exportProgressContainer');
-  const progressText = document.getElementById('exportProgressText');
-  const progressBar = document.getElementById('exportProgressBar');
+//   const progressContainer = document.getElementById('exportProgressContainer');
+//   const progressText = document.getElementById('exportProgressText');
+//   const progressBar = document.getElementById('exportProgressBar');
 
-  progressContainer.style.display = 'block';
-  progressText.textContent = `Exporting 0 / ${total}`;
-  progressBar.style.width = '0%';
+//   progressContainer.style.display = 'block';
+//   progressText.textContent = `Exporting 0 / ${total}`;
+//   progressBar.style.width = '0%';
 
-  // We can't use exec directly anymore - need to modify main.js and preload.js to add a channel for this
-  alert("Export functionality requires an update to use electronAPI instead of Node.js APIs directly. Please contact the developer.");
+//   // We can't use exec directly anymore - need to modify main.js and preload.js to add a channel for this
+//   alert("Export functionality requires an update to use electronAPI instead of Node.js APIs directly. Please contact the developer.");
   
-  // Show progress for demo purposes
-  progressText.textContent = `Export pending API update`;
-  progressBar.style.width = `100%`;
-});
+//   // Show progress for demo purposes
+//   progressText.textContent = `Export pending API update`;
+//   progressBar.style.width = `100%`;
+// });
 
 // ===== Handle Drop Event =====
 function handleDrop(event) {
@@ -250,6 +250,7 @@ async function handleFolderDrop(folderPath) {
           acc[group.name] = group.files;
           return acc;
         }, {});
+        window.groupedFiles = window.cameraGroups; // Make camera groups globally accessible to export.js
         buildGallery();
       } else {
         console.error("groupByCamera function not available");

@@ -48,7 +48,7 @@
         const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
         const key = ext.replace('.', '').toUpperCase();
         if (!groups[key]) groups[key] = [];
-        groups[key].push({ file: { name }, path: p });
+        groups[key].push({ file: { name }, fullPath: p });
       });
       return Object.keys(groups).map(k => ({
         name: k,
