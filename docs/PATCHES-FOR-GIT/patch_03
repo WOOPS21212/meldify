@@ -1,0 +1,133 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/main.js b/main.js
+index 8aee0d8..01377f5 100644
+--- a/main.js
++++ b/main.js
+@@ -1,49 +1,50 @@
+ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+ const path = require('path');
+ const fs = require('fs/promises');
+ 
+ function createWindow() {
+   const win = new BrowserWindow({
+     width: 1280,
+   height: 800,
+   webPreferences: {
+     preload: path.join(__dirname, 'preload.js'),
+     contextIsolation: true,
+     nodeIntegration: false
+   }
+   });
+ 
+   win.loadFile('src/index.html');
+ 
+   // Open DevTools automatically (optional during development)
+   // win.webContents.openDevTools();
+ }
+ 
+ // ===== Folder Picker Handling =====
+ ipcMain.handle('select-folder', async () => {
+-  const result = await dialog.showOpenDialog({
++  const win = BrowserWindow.getFocusedWindow();
++  const result = await dialog.showOpenDialog(win, {
+     properties: ['openDirectory']
+   });
+ 
+   if (result.canceled || result.filePaths.length === 0) {
+     return null;
+   }
+ 
+   return result.filePaths[0];
+ });
+ 
+ // ===== Folder Scanning =====
+ ipcMain.handle('scan-folder', async (event, folderPath) => {
+   const supported = new Set(['.r3d', '.mov', '.mxf']);
+ 
+   const files = [];
+   const stack = [folderPath];
+ 
+   try {
+     while (stack.length) {
+       const dir = stack.pop();
+       const entries = await fs.readdir(dir, { withFileTypes: true });
+       for (const entry of entries) {
+         const full = path.join(dir, entry.name);
+         if (entry.isDirectory()) {
+           stack.push(full);
+diff --git a/src/scripts/renderer.js b/src/scripts/renderer.js
+index 193a00b..d1be253 100644
+--- a/src/scripts/renderer.js
++++ b/src/scripts/renderer.js
+@@ -253,57 +253,62 @@ async function handleFolderDrop(folderPath) {
+         buildGallery();
+       } else {
+         console.error("groupByCamera function not available");
+         alert("File processing functionality requires an update to use electronAPI instead of Node.js APIs directly.");
+       }
+     } else {
+       console.error("scanFolder function not available");
+       alert("File scanning functionality requires an update to use electronAPI instead of Node.js APIs directly.");
+     }
+   } catch (error) {
+     console.error("Error processing folder:", error);
+     alert("Error processing folder: " + error.message);
+   }
+ }
+ 
+ // ===== Prevent Default Drag/Drop Behavior =====
+ window.addEventListener("dragover", event => {
+   event.preventDefault();
+ });
+ 
+ window.addEventListener("drop", event => {
+   event.preventDefault();
+   handleDrop(event);
+ });
+ 
+-function selectFolder() {
+-  window.electronAPI.selectFolder().then(folderPath => {
+-    if (folderPath) {
+-      console.log("Selected folder:", folderPath);
+-      handleFolderDrop(folderPath);
++async function selectFolder() {
++  try {
++    const folderPath = await window.electronAPI.selectFolder();
++    if (!folderPath) {
++      console.warn('No folder selected');
++      return;
+     }
+-  });
++    console.log('Selected folder:', folderPath);
++    await handleFolderDrop(folderPath);
++  } catch (err) {
++    console.error('Error selecting folder:', err);
++  }
+ }
+ 
+ 
+ // ===== Initialize Dropzone =====
+ window.setupDropzone = function() {
+   const dropzone = document.getElementById('dropzone');
+   if (!dropzone) {
+     console.error('❌ Dropzone element not found!');
+     return;
+   }
+ 
+   // Setup visual feedback for drag-over events
+   dropzone.addEventListener('dragover', (e) => {
+     e.preventDefault();
+     dropzone.classList.add('active');
+   });
+ 
+   dropzone.addEventListener('dragleave', () => {
+     dropzone.classList.remove('active');
+   });
+ 
+   dropzone.addEventListener('drop', (e) => {
+     e.preventDefault();
+     dropzone.classList.remove('active');
+     handleDrop(e);
+ 
+EOF
+)

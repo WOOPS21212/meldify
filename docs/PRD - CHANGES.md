@@ -65,3 +65,19 @@ Next Steps: Delete or archive PRD.md, continue edits only in Electron App PRD.md
 - ✅ Verified drag-and-drop folder import already works as intended.
 - 🛠 Switched blocking error dialogs to non-blocking UI error flow.
 - ⚙ Implemented backend hookup plan for "Start Export" button.
+
+### [2025-05-21] – Folder Picker + Export Button Integration
+
+**Change Type:** Added  
+**Description:**  
+- Applied Codex patch_02 to implement manual folder selection using `dialog.showOpenDialog` with path validation before IPC call.  
+- Applied patch_03 to begin wiring up export trigger from renderer via `ipcRenderer.send('start-export', options)`.
+
+**Impacted Sections:**  
+- Electron App PRD > Folder Ingestion (manual)  
+- Electron App PRD > Export Screen  
+- `main.js`, `renderer.js`, `fileManager.js`, UI export page
+
+**Next Steps:**  
+- Validate end-to-end export process using FFmpeg  
+- Add error feedback and export progress indicator to UI

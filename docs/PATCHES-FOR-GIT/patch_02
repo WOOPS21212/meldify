@@ -1,0 +1,264 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/main.js b/main.js
+index 8aee0d8..fe3c2f2 100644
+--- a/main.js
++++ b/main.js
+@@ -1,28 +1,29 @@
+ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+ const path = require('path');
+ const fs = require('fs/promises');
++const { spawn } = require('child_process');
+ 
+ function createWindow() {
+   const win = new BrowserWindow({
+     width: 1280,
+   height: 800,
+   webPreferences: {
+     preload: path.join(__dirname, 'preload.js'),
+     contextIsolation: true,
+     nodeIntegration: false
+   }
+   });
+ 
+   win.loadFile('src/index.html');
+ 
+   // Open DevTools automatically (optional during development)
+   // win.webContents.openDevTools();
+ }
+ 
+ // ===== Folder Picker Handling =====
+ ipcMain.handle('select-folder', async () => {
+   const result = await dialog.showOpenDialog({
+     properties: ['openDirectory']
+   });
+ 
+   if (result.canceled || result.filePaths.length === 0) {
+@@ -41,50 +42,90 @@ ipcMain.handle('scan-folder', async (event, folderPath) => {
+ 
+   try {
+     while (stack.length) {
+       const dir = stack.pop();
+       const entries = await fs.readdir(dir, { withFileTypes: true });
+       for (const entry of entries) {
+         const full = path.join(dir, entry.name);
+         if (entry.isDirectory()) {
+           stack.push(full);
+         } else if (entry.isFile()) {
+           const ext = path.extname(entry.name).toLowerCase();
+           if (supported.has(ext)) {
+             files.push(full);
+           }
+         }
+       }
+     }
+ 
+     return files;
+   } catch (err) {
+     console.error('scan-folder error:', err);
+     throw err;
+   }
+ });
+ 
++// ===== Start Export =====
++ipcMain.handle('start-export', async (event, { files, outputFolder, format }) => {
++  try {
++    if (!Array.isArray(files) || files.length === 0) {
++      return;
++    }
++
++    const total = files.length;
++    const ffmpegPath = path.join(__dirname, 'ffmpeg', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
++
++    for (let i = 0; i < files.length; i++) {
++      const inputPath = files[i].path;
++      const baseName = path.parse(inputPath).name;
++      const ext = format === 'prores' ? '.mov' : '.mp4';
++      const outputPath = path.join(outputFolder, baseName + ext);
++
++      const args =
++        format === 'prores'
++          ? ['-y', '-i', inputPath, '-c:v', 'prores_ks', '-profile:v', '3', '-c:a', 'pcm_s16le', outputPath]
++          : ['-y', '-i', inputPath, '-c:v', 'libx264', '-b:v', '10M', '-c:a', 'aac', '-movflags', '+faststart', outputPath];
++
++      await new Promise((resolve, reject) => {
++        const proc = spawn(ffmpegPath, args);
++        proc.on('error', reject);
++        proc.on('close', code => {
++          if (code === 0) resolve();
++          else reject(new Error('FFmpeg exited with code ' + code));
++        });
++      });
++
++      event.sender.send('export-progress', { current: i + 1, total });
++    }
++
++    event.sender.send('export-complete');
++  } catch (err) {
++    console.error('start-export error:', err);
++    event.sender.send('export-error', err.message);
++  }
++});
++
+ // ===== App Lifecycle =====
+ app.whenReady().then(() => {
+   createWindow();
+ 
+   app.on('activate', () => {
+     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+   });
+ });
+ 
+ app.on('window-all-closed', () => {
+   if (process.platform !== 'darwin') {
+     app.quit();
+   }
+ });
+ 
+ app.on('web-contents-created', (event, contents) => {
+   // Prevent navigation when dragging files in
+   contents.on('will-navigate', (e) => {
+     e.preventDefault();
+     console.log('Navigation prevented');
+   });
+   
+   // Prevent opening new windows
+   contents.setWindowOpenHandler(() => {
+     console.log('Window open prevented');
+diff --git a/preload.js b/preload.js
+index 48e87db..6015c21 100644
+--- a/preload.js
++++ b/preload.js
+@@ -1,6 +1,10 @@
+ const { contextBridge, ipcRenderer } = require('electron');
+ 
+ contextBridge.exposeInMainWorld('electronAPI', {
+   selectFolder: () => ipcRenderer.invoke('select-folder'),
+-  scanFolder: (folderPath) => ipcRenderer.invoke('scan-folder', folderPath)
++  scanFolder: (folderPath) => ipcRenderer.invoke('scan-folder', folderPath),
++  startExport: (data) => ipcRenderer.invoke('start-export', data),
++  onExportProgress: (callback) => ipcRenderer.on('export-progress', callback),
++  onExportError: (callback) => ipcRenderer.on('export-error', callback),
++  onExportComplete: (callback) => ipcRenderer.on('export-complete', callback)
+ });
+diff --git a/src/scripts/renderer.js b/src/scripts/renderer.js
+index 193a00b..ee324bf 100644
+--- a/src/scripts/renderer.js
++++ b/src/scripts/renderer.js
+@@ -158,89 +158,105 @@ function setupNavButtons() {
+ // Call this immediately
+ setupNavButtons();
+ 
+ // ===== Handle Export Format Change =====
+ document.getElementById('exportFormat').addEventListener('change', (e) => {
+   userSettings.exportFormat = e.target.value;
+   console.log('✅ Export format set to:', userSettings.exportFormat);
+ });
+ 
+ // ===== Build FFmpeg Command =====
+ function buildFFmpegCommand(inputPath, outputPath) {
+   const format = userSettings.exportFormat || "mp4";
+ 
+   // Using relative paths since process.cwd() isn't available in renderer
+   if (format === "mp4") {
+     return `./ffmpeg/ffmpeg.exe -y -i "${inputPath}" -c:v libx264 -b:v 10M -c:a aac -movflags +faststart "${outputPath}"`;
+   } else if (format === "prores") {
+     return `./ffmpeg/ffmpeg.exe -y -i "${inputPath}" -c:v prores_ks -profile:v 3 -c:a pcm_s16le "${outputPath}"`;
+   }
+ }
+ 
+ // ===== Start Export Process =====
+ document.getElementById('startExport').addEventListener('click', async () => {
+   console.log("✅ Start Export button clicked!");
+ 
+-  // Use electronAPI from preload.js instead of direct ipcRenderer
+   const folderPath = await window.electronAPI.selectFolder();
+ 
+   if (!folderPath) {
+     alert("❗ No output folder selected!");
+     return;
+   }
+ 
+   console.log('Exporting to:', folderPath);
+ 
+-  // Flatten the array of arrays in cameraGroups
+   const allFiles = [];
+   Object.values(window.cameraGroups).forEach(group => {
+     if (Array.isArray(group)) {
+       allFiles.push(...group);
+     }
+   });
+-  let current = 0;
+   const total = allFiles.length;
+ 
+   if (total === 0) {
+     alert("❗ No files to export!");
+     return;
+   }
+ 
+   const progressContainer = document.getElementById('exportProgressContainer');
+   const progressText = document.getElementById('exportProgressText');
+   const progressBar = document.getElementById('exportProgressBar');
+ 
+   progressContainer.style.display = 'block';
+   progressText.textContent = `Exporting 0 / ${total}`;
+   progressBar.style.width = '0%';
+ 
+-  // We can't use exec directly anymore - need to modify main.js and preload.js to add a channel for this
+-  alert("Export functionality requires an update to use electronAPI instead of Node.js APIs directly. Please contact the developer.");
+-  
+-  // Show progress for demo purposes
+-  progressText.textContent = `Export pending API update`;
+-  progressBar.style.width = `100%`;
++  window.electronAPI.onExportProgress((_event, data) => {
++    progressText.textContent = `Exporting ${data.current} / ${data.total}`;
++    const percent = (data.current / data.total) * 100;
++    progressBar.style.width = `${percent}%`;
++  });
++
++  window.electronAPI.onExportError((_event, message) => {
++    progressText.textContent = `Error: ${message}`;
++  });
++
++  window.electronAPI.onExportComplete(() => {
++    progressText.textContent = `Export complete`;
++    progressBar.style.width = '100%';
++  });
++
++  try {
++    await window.electronAPI.startExport({
++      files: allFiles,
++      outputFolder: folderPath,
++      format: userSettings.exportFormat
++    });
++  } catch (err) {
++    console.error('startExport error:', err);
++    progressText.textContent = `Error: ${err.message}`;
++  }
+ });
+ 
+ // ===== Handle Drop Event =====
+ function handleDrop(event) {
+   const files = [...event.dataTransfer.files];
+   if (files.length && files[0].type === "") {
+     // Use fileManager's scanFolder function, which is loaded via script tag in HTML
+     const scanPath = files[0].path;
+     console.log("Dropped folder:", scanPath);
+     handleFolderDrop(scanPath);
+   } else {
+     alert("Please drop a folder");
+   }
+ }
+ 
+ // Helper function to process scanned folders
+ async function handleFolderDrop(folderPath) {
+   try {
+     console.log("Scanning folder:", folderPath);
+     // We need to use the electronAPI for this functionality since we can't access Node.js APIs directly
+     if (typeof window.scanFolder === 'function') {
+       // If scanFolder has been exposed to window by fileManager.js
+       const files = await window.scanFolder(folderPath);
+       console.log("Found files:", files.length);
+       
+ 
+EOF
+)

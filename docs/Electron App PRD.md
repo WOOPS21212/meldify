@@ -78,3 +78,15 @@ Phase | Focus | Status
 5 | Error handling UX | Pending
 6 | Settings + Theming | Later
 7 | FAQ + Support Section | Later
+
+---
+
+### ✅ Patch Addendum – May 21, 2025
+
+🆕 Manual Folder Picker:
+- Fully implemented using Electron's `dialog.showOpenDialog`.
+- Path validation added before IPC call to `scan-folder`.
+
+🚀 Export Trigger (Start Export Button):
+- UI now sends export options to backend via IPC.
+- FFmpeg wiring partially completed; output handling pending.
