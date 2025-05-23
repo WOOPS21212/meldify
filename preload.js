@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   scanFolder: (folderPath) => ipcRenderer.invoke('scan-folder', folderPath),
+  getVideoDimensions: (filePath) => ipcRenderer.invoke('get-video-dimensions', filePath),
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
   exportMedia: (args) => ipcRenderer.send('export-media', args), // Changed from 'start-export'
   cancelExport: () => ipcRenderer.send('cancel-export'),

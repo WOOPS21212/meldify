@@ -39,23 +39,67 @@
    * @param {Array<{path: string, name: string, size: number}>} files - Array of video files
    * @returns {Promise<Array>} Array of camera groups with metadata
    */
+  /**
+   * Calculates aspect ratio from width and height.
+   * @param {number} width
+   * @param {number} height
+   * @returns {string} Aspect ratio string (e.g., "16:9")
+   */
+  function getAspectRatio(width, height) {
+    if (!width || !height) return "unknown";
+    const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+    const commonDivisor = gcd(width, height);
+    return `${width / commonDivisor}:${height / commonDivisor}`;
+  }
+
   window.groupByCamera = async function(files) {
     try {
-      console.log("Wrapper: Grouping files by camera", files.length);
+      console.log("Wrapper: Grouping files by camera and aspect ratio", files.length);
       const groups = {};
-      files.forEach((p) => {
-        const name = p.split(/[/\\]/).pop();
+      
+      for (const filePath of files) { // Assuming files is an array of full paths
+        const name = filePath.split(/[/\\]/).pop();
         const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
-        const key = ext.replace('.', '').toUpperCase();
-        if (!groups[key]) groups[key] = [];
-        groups[key].push({ file: { name }, fullPath: p });
-      });
-      return Object.keys(groups).map(k => ({
-        name: k,
-        files: groups[k],
-        totalSize: groups[k].length,
-        fileCount: groups[k].length
-      }));
+        const cameraType = ext.replace('.', '').toUpperCase(); // Basic grouping by extension as camera type
+
+        let aspectRatioKey = "unknown";
+        let dimensions = { width: 0, height: 0 };
+        try {
+          if (window.electronAPI && typeof window.electronAPI.getVideoDimensions === 'function') {
+            dimensions = await window.electronAPI.getVideoDimensions(filePath);
+            if (dimensions && dimensions.width && dimensions.height) {
+              aspectRatioKey = getAspectRatio(dimensions.width, dimensions.height);
+            }
+          } else {
+            console.warn('getVideoDimensions API not available. Aspect ratio will be unknown.');
+          }
+        } catch (err) {
+          console.error(`Error getting dimensions for ${filePath}:`, err.message);
+          // Keep aspectRatioKey as "unknown"
+        }
+
+        const groupKey = `${cameraType}_${aspectRatioKey}`; // Combined key
+
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            name: groupKey, // Display name for the group
+            cameraType: cameraType,
+            aspectRatio: aspectRatioKey,
+            files: [],
+            fileCount: 0
+          };
+        }
+        groups[groupKey].files.push({ 
+          file: { name }, 
+          fullPath: filePath,
+          width: dimensions.width,
+          height: dimensions.height,
+          aspectRatio: aspectRatioKey
+        });
+        groups[groupKey].fileCount++;
+      }
+      
+      return Object.values(groups); // Return an array of group objects
     } catch (error) {
       console.error("Error in groupByCamera wrapper:", error);
       throw error;

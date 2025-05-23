@@ -44,8 +44,8 @@ p {
 }
 
 button {
-  padding: 12px 28px;
-  font-size: 1.2rem;
+  padding: 16px 40px;  // Increased from 12px 28px
+  font-size: 1.4rem;   // Increased from 1.2rem
   border-radius: 50px;
   border: 2px solid white;
   background: transparent;
@@ -136,55 +136,227 @@ input[type="checkbox"] {
   background: rgba(255, 255, 255, 0.1);
   border: 2px solid white;
   border-radius: 20px;
-  padding: 20px;
+  padding: 25px;  // Increased from 20px
   margin: 20px auto;
   width: 80%;
-  max-width: 600px;
+  max-width: 700px;  // Increased from 600px
   text-align: left;
-  font-size: 1.2rem;
-  line-height: 1.8;
+  font-size: 1.3rem;  // Increased from 1.2rem
+  line-height: 2;     // Increased from 1.8
 }
+
+// Gallery Page Layout Adjustments for Scroll
+#page-gallery {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; // Use viewport height
+  padding: 20px; // Keep overall page padding
+  box-sizing: border-box;
+  
+  h1 {
+    flex-shrink: 0; // Prevent h1 from shrinking
+  }
+  
+  .settings-summary {
+    flex-shrink: 0; // Prevent summary from shrinking
+    margin: 20px auto; // Keep original margin
+  }
+  
+  > p { // Target the direct child p for "Detected cameras..."
+    flex-shrink: 0; // Prevent p from shrinking
+    margin-bottom: 10px; // Reduced margin for tighter layout before scroll area
+  }
+  
+  .button-row { // This is for the old button row, export-controls is separate
+    flex-shrink: 0;
+    margin-top: auto; // Push buttons to bottom
+    padding-top: 20px; // Add some space above buttons
+  }
+  .export-controls { // Ensure export controls are also pushed to bottom if they are part of this flex flow
+    flex-shrink: 0;
+    margin-top: auto;
+    // position: fixed is already applied, so margin-top: auto might not be needed here
+    // but good to have if its display changes.
+  }
+}
+
+// Add a wrapper for the gallery content that will be scrollable
+.gallery-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 320px);  // Adjusted for larger window
+  overflow: hidden;
+}
+
+.gallery-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 20px; // Padding for scrollable content
+  margin: 10px 0; // Margin for scrollable area
+  
+  /* Custom scrollbar for better visibility */
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
 .dropzone.dragover {
   background: rgba(255, 255, 255, 0.2);
   border-color: white;
   transform: scale(1.02);
 }
+// Update gallery grid for better spacing with larger window
 #gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  // Smaller cards, more per row
   gap: 20px;
-  margin-top: 30px;
-  margin-bottom: 30px;
-  padding: 10px;
+  padding: 10px 0;
+  margin: 0;
 }
 
-
+// Update gallery card sizes
 .gallery-card {
   padding: 20px;
-  border: 5px solid white;
-  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);  // Thinner, subtle border
+  border-radius: 12px;  // Slightly rounded corners like folders
   text-align: center;
   color: white;
-  background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(5px);
+  background-color: rgba(255, 255, 255, 0.08);  // 80% transparent white
+  backdrop-filter: blur(10px);  // Add blur effect
   position: relative;
+  min-height: 140px;  // Smaller height to match folder style
+  max-height: 160px;  // Adjusted max height
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  
+  // Remove the gradient background
+  background: rgba(255, 255, 255, 0.08) !important;
+  animation: fadeIn 0.3s ease-out;
+  
+  // Hover effect
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  // Camera icon styling
+  .overlay { // Assuming .overlay is the direct child for content
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    
+    // This targets the div that holds the camera icon 📹
+    // Adjust if structure from renderer.js is different
+    > div:first-child { 
+      font-size: 28px;  // Smaller icon
+      opacity: 0.8;
+    }
+  }
+  
+  h2 {
+    margin: 8px 0;
+    font-size: 18px;  // Smaller text
+    font-weight: 500;  // Medium weight
+    opacity: 0.9;
+  }
+  
+  p {
+    margin: 4px 0;
+    font-size: 14px;  // Smaller text
+    opacity: 0.7;
+    
+    &.small-text {
+      font-size: 12px;
+      opacity: 0.5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90%;
+    }
+  }
 }
 
-
-.gallery-card h2 {
-  margin-top: 10px;
-  font-size: 20px;
-  font-weight: bold;
+// Keyframes for fadeIn animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.gallery-card p {
-  margin-top: 5px;
-  font-size: 16px;
+// Clip Count Badge
+.clip-count {
+  font-size: 0.5rem; // Halved from a typical 1rem
+  padding: 2px 5px; // Halved from typical padding
+  border-radius: 5px; // Halved
+  background-color: rgba(255, 255, 255, 0.2); // Example style
+  color: white;
+  display: inline-block;
+  margin-left: 5px; // Example margin
 }
 
-.gallery-card:hover {
-  transform: scale(1.05);
-  transition: transform 0.2s;
-  background-color: rgba(255, 255, 255, 0.1);
+// Export Controls Bar
+.export-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(10, 10, 10, 0.9); // Darker background for contrast
+  padding: 5px 10px; // Halved padding
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between; // Assuming back, export, cancel
+  align-items: center;
+  z-index: 1000; // Ensure it's on top of other elements
+
+  button {
+    // Styles are now inherited from the global button, only keep specific overrides like margin
+    margin: 0 5px; // Add some spacing between buttons
+    // padding, font-size, border-radius will be inherited
+    // Re-apply specific padding if export control buttons need to be different from global
+    // For now, assuming they use the new global button style.
+  }
 }
 
+// Adjust main page padding to prevent content from hiding under fixed export-controls
+// #page-gallery already has specific padding-bottom to handle this.
+// The global body padding might be too general if not all pages have fixed footers.
+// Let's ensure the #page-gallery specific padding is sufficient.
+// The previous body padding-bottom: 50px; might conflict or be redundant.
+// For now, I'll comment out the global body padding to rely on page-specific adjustments.
+// body { // Or a more specific gallery page container
+//   padding-bottom: 50px; // Approximate height of export-controls + some buffer
+// }
+// The previous #page-gallery padding-bottom and height calc are removed
+// as the new flex layout handles the space for fixed .export-controls.
+// The .export-controls itself is position:fixed, so it's outside the flex flow of #page-gallery.
+// The #page-gallery needs enough bottom padding to not be obscured by .export-controls.
+#page-gallery {
+  // ... existing styles from above ...
+  padding-bottom: 70px; // Ensure space for fixed export-controls bar (approx height + buffer)
+}

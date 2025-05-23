@@ -81,6 +81,21 @@ Ensure FFmpeg is executed with correct arguments. (Covered by patch)
 
 Add progress feedback to UI. (Partially addressed by more detailed IPC, UI needs to use it)
 
+## 📐 Design System Updates (May 22, 2025)
+
+### Window Specifications
+- **Default Size:** 1600x900 (increased from 1280x800)
+- **Framework:** Electron with pure HTML/CSS/JS
+
+### UI Components
+- **Navigation Buttons:** Large pill-style (16px 40px padding, 1.4rem font)
+- **Gallery Cards:** Transparent white folders (8% opacity white background)
+- **Scrollable Areas:** Custom webkit scrollbars with 30% opacity white
+- **Typography:** Helvetica Neue, varied sizes for hierarchy
+
+### Navigation Flow
+- Welcome → Settings → Gallery → Export (Audio page temporarily hidden)
+
 📅 Timeline (Revised)
 
 Phase | Focus | Status
@@ -92,6 +107,16 @@ Phase | Focus | Status
 5 | Error handling UX | Pending
 6 | Settings + Theming | Later
 7 | FAQ + Support Section | Later
+
+### Current Implementation Status
+✅ Folder drag-and-drop ingestion
+✅ Camera grouping by file type (R3D, MOV, MXF)
+✅ Scrollable gallery with improved card design
+✅ Basic settings configuration
+⏳ Export functionality (partially implemented)
+❌ Thumbnail generation
+❌ LUT assignment per camera
+❌ Audio sync features
 
 ---
 

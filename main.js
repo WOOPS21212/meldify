@@ -7,8 +7,8 @@ let activeFFmpegProcs = []; // To keep track of active FFmpeg processes
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1280,
-  height: 800,
+    width: 1600,  // Increased from 1280
+    height: 900,  // Increased from 800
   webPreferences: {
     preload: path.join(__dirname, 'preload.js'),
     contextIsolation: true,
@@ -77,6 +77,56 @@ ipcMain.handle('select-export-folder', async () => {
     return null; // Return null if cancelled or no folder selected
   }
   return result.filePaths[0]; // Return the selected folder path
+});
+
+// ===== Get Video Dimensions using ffprobe =====
+ipcMain.handle('get-video-dimensions', async (event, filePath) => {
+  const ffprobePath = './ffmpeg/ffprobe.exe'; // Assuming ffprobe is in the same directory as ffmpeg
+
+  // Arguments for ffprobe to get video dimensions in JSON format
+  const ffprobeArgs = [
+    '-v', 'error',             // Only print errors
+    '-select_streams', 'v:0',  // Select the first video stream
+    '-show_entries', 'stream=width,height', // Get width and height
+    '-of', 'json',             // Output in JSON format
+    filePath
+  ];
+
+  return new Promise((resolve, reject) => {
+    const ffprobe = spawn(ffprobePath, ffprobeArgs);
+    let output = '';
+    let errorOutput = '';
+
+    ffprobe.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ffprobe.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    ffprobe.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const jsonData = JSON.parse(output);
+          if (jsonData.streams && jsonData.streams.length > 0) {
+            const { width, height } = jsonData.streams[0];
+            resolve({ width, height });
+          } else {
+            reject(new Error('No video streams found or dimensions not available.'));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse ffprobe output: ${e.message}. Output: ${output}`));
+        }
+      } else {
+        reject(new Error(`ffprobe process exited with code ${code}. Error: ${errorOutput}`));
+      }
+    });
+
+    ffprobe.on('error', (err) => {
+      reject(new Error(`Failed to start ffprobe: ${err.message}`));
+    });
+  });
 });
 
 // ===== FFmpeg Export Handling =====

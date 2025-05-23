@@ -20,6 +20,52 @@ This document tracks any change in scope, feature reordering, added ideas, desig
 
 ## Log
 
+### [2025-05-22] – UI/UX Improvements Phase 1
+**Change Type:** Changed
+**Description:** Made several UI improvements for better usability:
+1. Increased navigation button sizes (padding: 16px 40px, font-size: 1.4rem)
+2. Made gallery cards larger and more visible (350px minimum width)
+3. Increased Electron window size to 1600x900 for better content visibility
+4. Removed Audio page from navigation flow (temporarily hidden)
+5. Implemented scrollable gallery area to prevent button cutoff
+6. Restyled gallery cards with transparent white design (80% transparency)
+**Impacted Sections:** 
+- `main.js` - Window dimensions
+- `src/styles/style.scss` - Button sizes, gallery layout, card styling
+- `src/scripts/renderer.js` - Navigation flow, removed audio page
+- `src/index.html` - Gallery page structure
+**Next Steps:** 
+- Implement thumbnail previews for video files
+- Add camera-specific LUT assignment functionality
+- Complete export functionality with progress tracking
+
+### [2025-05-22] – Design System Update
+**Change Type:** Changed
+**Description:** Established new design principles:
+- Transparent white UI elements (rgba(255, 255, 255, 0.08) base)
+- Blur backdrop effects for depth
+- Consistent hover states with subtle elevation
+- Folder-like card design for camera groups
+- No purple/gradient backgrounds on cards
+**Impacted Sections:** Design guidelines, UI styling
+**Next Steps:** Apply consistent design system across all pages
+
+### [2025-05-21] – Unified UI Style and Aspect-Ratio-Based Binning
+**Change Type:** Changed/Added
+**Description:** 
+- Normalized all button sizes and alignment across the UI.
+- Scaled down the “Detected cameras...” text by 50%.
+- Gallery cards now reflect the true aspect ratio of each video clip.
+- Footage with different aspect ratios is now binned separately.
+**Impacted Sections:** 
+- index.html
+- style.scss
+- Electron App PRD > UI & Gallery
+- Project Overview
+**Next Steps:** 
+- Implement visual aspect-ratio scaling in gallery rendering logic.
+- Update gallery sorting logic to bin by aspect ratio group.
+
 ### \[2025-05-20] – Project Bootstrapped for AI Agent Build
 
 **Change Type:** Added

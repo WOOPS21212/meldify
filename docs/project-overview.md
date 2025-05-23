@@ -133,6 +133,16 @@ Transcode selected clips to MP4 (10Mbps) or ProRes Proxy MOV
 
 Maintain accurate Windows-safe paths for all operations
 
+Gallery Grouping Logic
+
+Footage is binned not only by camera source (e.g., RED-A, DJI), but also by clip aspect ratio.
+
+Each bin now reflects a single aspect ratio group to ensure visual consistency in the Gallery.
+
+Gallery cards are styled using the actual dimensions of each video clip to preserve frame shape.
+
+All navigation buttons maintain consistent placement and style across the app.
+
 Technologies
 
 Electron – app shell
@@ -197,4 +207,3 @@ Purpose and API
 Dependencies
 
 After each task, testing or inspection is required before moving forward.
-

@@ -26,27 +26,30 @@ const pages = [
   "page-welcome",
   "page-settings",
   "page-gallery",
-  "page-audio",
+  // "page-audio",  // Commented out to skip
   "page-export"
 ];
 let currentPage = 0;
 
 function showPage(index) {
-  pages.forEach((pageId, i) => {
-    const page = document.getElementById(pageId);
-    if (i === index) {
-      page.classList.remove('hidden');
-    } else {
-      page.classList.add('hidden');
-    }
+  // Hide all pages first
+  document.querySelectorAll('.page').forEach(page => {
+    page.classList.add('hidden');
   });
+  
+  // Show the current page
+  const currentPageId = pages[index];
+  const currentPageElement = document.getElementById(currentPageId);
+  if (currentPageElement) {
+    currentPageElement.classList.remove('hidden');
+  }
 
+  // Update color filters
   const body = document.body;
-  if (index === 0) { body.style.filter = 'hue-rotate(0deg)'; }
-  if (index === 1) { body.style.filter = 'hue-rotate(20deg)'; }
-  if (index === 2) { body.style.filter = 'hue-rotate(60deg)'; }
-  if (index === 3) { body.style.filter = 'hue-rotate(100deg)'; }
-  if (index === 4) { body.style.filter = 'hue-rotate(180deg)'; }
+  if (index === 0) { body.style.filter = 'hue-rotate(0deg)'; } // page-welcome
+  if (index === 1) { body.style.filter = 'hue-rotate(20deg)'; } // page-settings
+  if (index === 2) { body.style.filter = 'hue-rotate(60deg)'; } // page-gallery
+  if (index === 3) { body.style.filter = 'hue-rotate(180deg)'; } // page-export (was index 4)
 
   if (pages[index] === "page-gallery") {
     updateGallerySettings();
@@ -98,28 +101,52 @@ window.buildGallery = function() {
     const card = document.createElement('div');
     card.className = 'gallery-card';
     
-    // Set background color
-    const cardColor = '#333333';
-    card.style.background = `linear-gradient(45deg, ${cardColor}, #555555)`;
+    // Background color is now handled by CSS (.gallery-card)
     
     // Populate card content
+    const firstClipInGroup = group[0]; // group is the array of files. cameraKey is the group name.
+    const aspectRatioText = firstClipInGroup.aspectRatio !== "unknown" ? `(${firstClipInGroup.aspectRatio})` : "";
+    const displayName = cameraKey;
+
+    // Updated innerHTML structure as per user feedback
     card.innerHTML = `
       <div class="overlay">
-        <div style="font-size: 36px; margin-bottom: 10px;">📹</div>
-        <h2>${cameraKey}</h2>
-        <p>${group.length} clip${group.length !== 1 ? 's' : ''}</p>
-        <p class="small-text">${firstClip.file.name}</p>
+        <div style="font-size: 28px; margin-bottom: 8px; opacity: 0.8;">📹</div>
+        <h2>${displayName}</h2>
+        <p>${group.length} clip${group.length !== 1 ? 's' : ''} ${aspectRatioText}</p> 
+        <p class="small-text">${firstClipInGroup.file.name}</p>
       </div>
     `;
+    // Note: The aspect ratio text is kept. The dynamic styling for aspect ratio via padding-bottom is removed
+    // as the new CSS for .gallery-card sets min/max height and uses flex to center.
     
     // Add click handler to show camera details
     card.addEventListener('click', () => {
-      alert(`Selected camera: ${cameraKey} with ${group.length} clips`);
+      alert(`Selected group: ${displayName} with ${group.length} clips`);
     });
     
     galleryGrid.appendChild(card);
-    console.log(`Added gallery card for ${cameraKey} with ${group.length} clips`);
+    console.log(`Added gallery card for ${displayName} with ${group.length} clips`);
   });
+
+  // Ensure window.cameraGroups is updated for export.js if it relies on the old structure
+  // The new structure from fileManager.js is an array of groups.
+  // If export.js expects an object keyed by camera name, this needs adjustment.
+  // For now, let's assume export.js will be adapted or uses a flat list of files.
+  // window.groupedFiles is already set in handleFolderDrop in renderer.js using the new structure.
+  // window.cameraGroups = groups.reduce((acc, group) => {
+  //   acc[group.name] = group.files; // This might need to change if export.js uses this
+  //   return acc;
+  // }, {});
+  // The above reduction is from an older version of handleFolderDrop.
+  // The current handleFolderDrop in renderer.js does:
+  // window.cameraGroups = groups.reduce((acc, group) => {
+  //   acc[group.name] = group.files; // group.name is now camera_aspectRatio
+  //   return acc;
+  // }, {});
+  // window.groupedFiles = window.cameraGroups;
+  // This seems okay for now, as export.js iterates Object.values(window.cameraGroups)
+  // which would be an array of arrays of files.
 }
 
 // ===== Navigation Buttons =====
@@ -245,12 +272,19 @@ async function handleFolderDrop(folderPath) {
       console.log("Found files:", files.length);
       
       if (typeof window.groupByCamera === 'function') {
-        const groups = await window.groupByCamera(files);
-        window.cameraGroups = groups.reduce((acc, group) => {
-          acc[group.name] = group.files;
-          return acc;
-        }, {});
-        window.groupedFiles = window.cameraGroups; // Make camera groups globally accessible to export.js
+        const groupsArray = await window.groupByCamera(files); // This now returns an array of group objects
+        
+        // Populate window.cameraGroups as an object for buildGallery and potentially export.js
+        window.cameraGroups = {};
+        groupsArray.forEach(group => {
+          // group.name is like "MOV_16:9", group.files is the array of file objects
+          window.cameraGroups[group.name] = group.files; 
+        });
+        
+        // For export.js, which flattens Object.values(window.cameraGroups)
+        // This structure should still work, as Object.values will give an array of arrays of files.
+        window.groupedFiles = window.cameraGroups; 
+
         buildGallery();
       } else {
         console.error("groupByCamera function not available");
